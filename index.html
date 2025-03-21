@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PSI Experiment</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.js"></script>
+    <style>
+        #symbols button { font-size: 24px; margin: 5px; }
+    </style>
+</head>
+<body>
+    <div id="status">Connecting...</div>
+    <div id="symbols"></div>
+    <script>
+        const socket = io({
+            transports: ['polling'],
+            reconnectionAttempts: 5,
+            reconnectionDelay: 1000
+        });
+        const role = "{{ role }}";
+        const room = "{{ room }}";
+        const symbols = ['★', '■', '▲', '◆', '●'];
+
+        socket.on('connect', () => {
+            console.log('Connected:', socket.id);
+            document.getElementById('status').innerText = 'Connected';
+            socket.emit('join_room', { role: role, room: room });
+        });
+
+        socket.on('joined_room', (data) => {
+            console.log(data.message);
+            document.getElementById('status').innerText = data.message;
+            if (role === 'transmitter') {
+                showSymbols();
+            }
+        });
+
+        socket.on('start_trial', (data) => {
+            console.log('Starting trial', data.trial);
+            if (role === 'transmitter') {
+                document.getElementById('status').innerText = `Trial ${data.trial}: Select a symbol`;
+                showSymbols();
+            } else {
+                document.getElementById('status').innerText = `Trial ${data.trial}: Waiting for transmitter`;
+            }
+        });
+
+        socket.on('transmitter_chose', (data) => {
+            if (role === 'receiver') {
+                document.getElementById('status').innerText = `Trial ${data.trial}: Select a symbol`;
+                showSymbols();
+            }
+        });
+
+        socket.on('connect_error', (err) => {
+            console.log('Connection error:', err);
+            document.getElementById('status').innerText = 'Connection failed';
+        });
+
+        function showSymbols() {
+            const symbolsDiv = document.getElementById('symbols');
+            symbolsDiv.innerHTML = '';
+            symbols.forEach(symbol => {
+                const btn = document.createElement('button');
+                btn.innerText = symbol;
+                btn.onclick = () => socket.emit('select_symbol', { symbol, room, role });
+                symbolsDiv.appendChild(btn);
+            });
+        }
+    </script>
+</body>
+</html>
