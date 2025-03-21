@@ -1,12 +1,8 @@
 from flask import Flask, render_template, request
 from flask_socketio import SocketIO, emit
-import logging
 
 app = Flask(__name__)
-socketio = SocketIO(app, async_mode='threading', cors_allowed_origins='*', 
-                    transports=['polling'], ping_timeout=10, ping_interval=5)
-
-logging.basicConfig(level=logging.DEBUG)
+socketio = SocketIO(app, cors_allowed_origins='*', transports=['polling'])
 
 rooms = {}
 
@@ -36,4 +32,4 @@ def handle_join_room(data):
             rooms[room]['data']['current_trial'] = 1
 
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True, allow_unsafe_werkzeug=True)
