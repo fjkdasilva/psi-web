@@ -35,10 +35,12 @@
                 const symbolsDiv = document.getElementById('symbols');
                 symbolsDiv.style.display = 'block';
                 if (role === 'transmitter') {
-                    console.log("Showing symbols for transmitter to pick");
+                    console.log("Pick a symbol to send");
                 } else if (role === 'receiver') {
-                    console.log("Showing symbols for receiver to guess");
+                    console.log("Guess the symbol");
                 }
+            } else {
+                console.log("Not in this trial");
             }
         });
 
@@ -53,7 +55,7 @@
                 console.log(`${role} picked: ${symbol}`);
                 socket.emit('submit_result', {
                     room: room,
-                    trial: rooms[room]?.data?.current_trial || 1,  // Sync with server
+                    trial: data.trial,  // Use the trial from start_trial
                     [role === 'transmitter' ? 'transmitter_symbol' : 'receiver_symbol']: symbol
                 });
             });
