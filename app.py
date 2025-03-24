@@ -2,7 +2,7 @@ from flask import Flask, render_template, request
 from flask_socketio import SocketIO, emit, join_room
 
 app = Flask(__name__)
-socketio = SocketIO(app, cors_allowed_origins='*', transports=['polling'])
+socketio = SocketIO(app, cors_allowed_origins='*', engineio_logger=True)
 
 rooms = {}
 
@@ -18,14 +18,16 @@ def index():
 
 @socketio.on('connect')
 def handle_connect():
-    emit('connected', {'sid': request.sid})
-    print(f"Server: Client connected: {request.sid}")
+    sid = request.sid
+    print(f"Server: Client connected: {sid}")
+    emit('connected', {'sid': sid})
 
 @socketio.on('join_room')
 def handle_join_room(data):
     room = data['room']
     role = data['role']
-    print(f"Server: {role} joining room {room}")
+    sid = request.sid
+    print(f"Server: {role} ({sid}) joining room {room}")
     if room not in rooms:
         rooms[room] = {'data': {'trials': [], 'current_trial': 0}}
     join_room(room)
