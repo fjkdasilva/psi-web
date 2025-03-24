@@ -19,6 +19,7 @@ def index():
 @socketio.on('connect')
 def handle_connect():
     emit('connected', {'sid': request.sid})
+    print(f"Server: Client connected: {request.sid}")
 
 @socketio.on('join_room')
 def handle_join_room(data):
@@ -29,9 +30,10 @@ def handle_join_room(data):
         rooms[room] = {'data': {'trials': [], 'current_trial': 0}}
     join_room(room)
     emit('joined_room', {'message': f'{role} joined room {room}'}, room=room)
-    clients_in_room = len(socketio.server.manager.rooms.get(room, {}).get('/', {}))
-    print(f"Server: {clients_in_room} clients in room {room}")
-    if clients_in_room == 2 and rooms[room]['data']['current_trial'] == 0:  # Changed >= to ==
+    clients = socketio.server.manager.rooms.get(room, {}).get('/', {})
+    clients_in_room = len(clients) if clients else 0
+    print(f"Server: {clients_in_room} clients in room {room}: {list(clients.keys())}")
+    if clients_in_room == 2 and rooms[room]['data']['current_trial'] == 0:
         print("Server: Starting trial 1")
         emit('start_trial', {'trial': 1}, room=room)
         rooms[room]['data']['current_trial'] = 1
