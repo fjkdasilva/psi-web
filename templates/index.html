@@ -1,72 +1,63 @@
 <!DOCTYPE html>
 <html>
-
 <head>
-    <title>PSI Experiment</title>
+    <title>PSI Web</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.js"></script>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <div id="status">Connecting...</div>
-    <div id="symbols"></div>
+    <div id="role"></div>
+    <div id="symbols" style="display: none;">
+        <button class="symbol" data-symbol="circle">○</button>
+        <button class="symbol" data-symbol="square">□</button>
+        <button class="symbol" data-symbol="triangle">△</button>
+        <button class="symbol" data-symbol="star">★</button>
+    </div>
     <script>
-        const socket = io({
-            transports: ['polling'],
-            reconnectionAttempts: 5,
-            reconnectionDelay: 1000
-        });
-        const role = "{{ role }}";
-        const room = "{{ room }}";
-        const symbols = ['★', '■', '▲', '◆', '●'];
-    
+        const socket = io('https://psi-web-4lxu.onrender.com');
+        const role = new URLSearchParams(window.location.search).get('role');
+        const room = new URLSearchParams(window.location.search).get('room') || 'test';
+        document.getElementById('role').textContent = `Role: ${role}`;
+
         socket.on('connect', () => {
             console.log('Connected:', socket.id);
-            document.getElementById('status').innerText = 'Connected';
-            console.log('Emitting join_room:', { role: role, room: room });
             socket.emit('join_room', { role: role, room: room });
         });
-    
+
         socket.on('joined_room', (data) => {
-            console.log('Received joined_room:', data.message);
-            document.getElementById('status').innerText = data.message;
-            if (role === 'transmitter') {
-                showSymbols();
-            }
+            console.log('Joined:', data.message);
         });
-    
+
         socket.on('start_trial', (data) => {
-            console.log('Received start_trial:', data.trial);
-            if (role === 'transmitter') {
-                document.getElementById('status').innerText = `Trial ${data.trial}: Select a symbol`;
-                showSymbols();
-            } else {
-                document.getElementById('status').innerText = `Trial ${data.trial}: Waiting for transmitter`;
-            }
-        });
-    
-        socket.on('connect_error', (err) => {
-            console.log('Connection error:', err);
-            document.getElementById('status').innerText = 'Connection failed';
-        });
-        socket.on('start_trial', (data) => {
-            console.log(`Received start_trial: Trial ${data.trial} for pair ${data.pair}`);
+            console.log(`Start trial ${data.trial} for pair ${data.pair}`);
             if (data.pair.includes(socket.id)) {
                 console.log("I'm in this trial!");
-                // Show symbols or whatever your trial does
+                const symbolsDiv = document.getElementById('symbols');
+                symbolsDiv.style.display = 'block';
+                if (role === 'transmitter') {
+                    console.log("Showing symbols for transmitter to pick");
+                } else if (role === 'receiver') {
+                    console.log("Showing symbols for receiver to guess");
+                }
             }
         });
-    
-        function showSymbols() {
-            console.log('Showing symbols');
-            const symbolsDiv = document.getElementById('symbols');
-            symbolsDiv.innerHTML = '';
-            symbols.forEach(symbol => {
-                const btn = document.createElement('button');
-                btn.innerText = symbol;
-                btn.onclick = () => socket.emit('select_symbol', { symbol, room, role });
-                symbolsDiv.appendChild(btn);
+
+        socket.on('trials_complete', (data) => {
+            console.log('Trials done:', data.results);
+            document.getElementById('symbols').style.display = 'none';
+        });
+
+        document.querySelectorAll('.symbol').forEach(button => {
+            button.addEventListener('click', () => {
+                const symbol = button.getAttribute('data-symbol');
+                console.log(`${role} picked: ${symbol}`);
+                socket.emit('submit_result', {
+                    room: room,
+                    trial: rooms[room]?.data?.current_trial || 1,  // Sync with server
+                    [role === 'transmitter' ? 'transmitter_symbol' : 'receiver_symbol']: symbol
+                });
             });
-        }
+        });
     </script>
 </body>
 </html>
