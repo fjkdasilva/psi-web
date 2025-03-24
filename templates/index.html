@@ -48,6 +48,13 @@
             console.log('Connection error:', err);
             document.getElementById('status').innerText = 'Connection failed';
         });
+        socket.on('start_trial', (data) => {
+            console.log(`Received start_trial: Trial ${data.trial} for pair ${data.pair}`);
+            if (data.pair.includes(socket.id)) {
+                console.log("I'm in this trial!");
+                // Show symbols or whatever your trial does
+            }
+        });
     
         function showSymbols() {
             console.log('Showing symbols');
