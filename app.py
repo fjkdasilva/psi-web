@@ -33,11 +33,10 @@ def handle_join_room(data):
         rooms[room] = {'data': {'trials': [], 'current_trial': 0}}
     join_room(room)
     emit('joined_room', {'message': f'{role} joined room {room}'}, room=room)
-    # Get all rooms this client is in
-    client_rooms = socketio.server.rooms(sid)
-    # Count clients in the specific room
-    clients_in_room = sum(1 for s in socketio.server.manager.get_participants(room, namespace='/') if s != sid) + 1
-    print(f"Server: {clients_in_room} clients in room {room}: {list(socketio.server.manager.get_participants(room, namespace='/'))}")
+    # Get clients in the room
+    room_clients = socketio.server.manager.rooms.get('/', {}).get(room, {})
+    clients_in_room = len(room_clients)
+    print(f"Server: {clients_in_room} clients in room {room}: {list(room_clients.keys())}")
     if clients_in_room == 2 and rooms[room]['data']['current_trial'] == 0:
         print("Server: Starting trial 1")
         emit('start_trial', {'trial': 1}, room=room)
