@@ -14,6 +14,7 @@ def index():
         return "Invalid role. Use ?role=transmitter or ?role=receiver", 400
     if room not in rooms:
         rooms[room] = {'data': {'trials': [], 'current_trial': 0}}
+    print(f"Server: Serving {role} in room {room}")
     return render_template('index.html', role=role, room=room)
 
 @socketio.on('connect')
@@ -39,6 +40,8 @@ def handle_join_room(data):
         print("Server: Starting trial 1")
         emit('start_trial', {'trial': 1}, room=room)
         rooms[room]['data']['current_trial'] = 1
+    else:
+        print(f"Server: Not starting trial - {clients_in_room} clients, trial {rooms[room]['data']['current_trial']}")
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True, allow_unsafe_werkzeug=True)
