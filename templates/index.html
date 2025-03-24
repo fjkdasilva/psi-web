@@ -28,8 +28,10 @@
             console.log('Joined:', data.message);
         });
 
+        let currentTrial = 0;  // Declare currentTrial here, outside any function
         socket.on('start_trial', (data) => {
             console.log(`Start trial ${data.trial} for pair ${data.pair}`);
+            currentTrial = data.trial;  // Update it when a trial starts
             if (data.pair.includes(socket.id)) {
                 console.log("I'm in this trial!");
                 const symbolsDiv = document.getElementById('symbols');
@@ -55,7 +57,7 @@
                 console.log(`${role} picked: ${symbol}`);
                 socket.emit('submit_result', {
                     room: room,
-                    trial: data.trial,  // Use the trial from start_trial
+                    trial: currentTrial,
                     [role === 'transmitter' ? 'transmitter_symbol' : 'receiver_symbol']: symbol
                 });
             });
