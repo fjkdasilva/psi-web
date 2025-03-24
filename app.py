@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request
-from flask_socketio import SocketIO, emit
+from flask_socketio import SocketIO, emit, join_room
 
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins='*', transports=['polling'])
@@ -24,13 +24,13 @@ def handle_connect():
 def handle_join_room(data):
     room = data['room']
     role = data['role']
-    # Always initialize the room if it doesn’t exist
+    print(f"Server: {role} joining room {room}")  # Debug log
     if room not in rooms:
         rooms[room] = {'data': {'trials': [], 'current_trial': 0}}
-    # Send joined_room to all in the room
+    join_room(room)  # Add client to the room
     emit('joined_room', {'message': f'{role} joined room {room}'}, room=room)
-    # Check if both clients are present to start the trial
     clients_in_room = len(socketio.server.manager.rooms.get(room, {}).get('/', {}))
+    print(f"Server: {clients_in_room} clients in room {room}")  # Debug log
     if clients_in_room >= 2 and rooms[room]['data']['current_trial'] == 0:
         emit('start_trial', {'trial': 1}, room=room)
         rooms[room]['data']['current_trial'] = 1
