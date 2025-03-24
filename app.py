@@ -31,20 +31,29 @@ def handle_join_room(data):
     role = data['role']
     sid = request.sid
     print(f"Server: {role} ({sid}) joining room {room}")
+    
+    # Initialize room if it doesn’t exist
+    if room not in rooms:
+        rooms[room] = {'data': {'trials': [], 'current_trial': 0, 'max_trials': 10}, 'clients': {}}
+    
+    # Check if room is full
     if len(rooms[room]['clients']) >= 2:
         emit('error', {'message': 'Room full—only one transmitter and one receiver allowed.'}, to=sid)
         return
     
+    # Add client to room
     join_room(room)
     rooms[room]['clients'][sid] = role
     emit('joined_room', {'message': f'{role} joined room {room}'}, room=room)
     
+    # Count transmitters and receivers
     clients = rooms[room]['clients']
     transmitters = [sid for sid, r in clients.items() if r == 'transmitter']
     receivers = [sid for sid, r in clients.items() if r == 'receiver']
     print(f"Server: {len(clients)} clients in room {room}: {list(clients.keys())} "
           f"(T: {len(transmitters)}, R: {len(receivers)})")
     
+    # Start trials if we have one of each
     if len(transmitters) == 1 and len(receivers) == 1 and rooms[room]['data']['current_trial'] == 0:
         start_next_trial(room, transmitters[0], receivers[0])
 
@@ -57,6 +66,7 @@ def handle_result(data):
     sid = request.sid
     role = rooms[room]['clients'][sid]
     
+    # Store result
     trial_data = next((t for t in rooms[room]['data']['trials'] if t['trial'] == trial), None)
     if not trial_data:
         trial_data = {'trial': trial, 'transmitter_symbol': None, 'receiver_symbol': None}
@@ -67,6 +77,7 @@ def handle_result(data):
     elif role == 'receiver':
         trial_data['receiver_symbol'] = receiver_symbol
     
+    # Move to next trial if both results are in
     if trial_data['transmitter_symbol'] is not None and trial_data['receiver_symbol'] is not None:
         correct = trial_data['transmitter_symbol'] == trial_data['receiver_symbol']
         print(f"Server: Trial {trial} complete: T={trial_data['transmitter_symbol']}, "
